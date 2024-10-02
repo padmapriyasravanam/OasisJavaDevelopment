@@ -1,0 +1,92 @@
+import sqlite3
+
+def setup_database():
+    conn = sqlite3.connect('reservation_system.db')
+    cursor = conn.cursor()
+    
+    # Create Users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL
+        )
+    ''')
+    
+    # Create Reservations table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reservations (
+            reservation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            train_number TEXT NOT NULL,
+            train_name TEXT NOT NULL,
+            class_type TEXT NOT NULL,
+            date_of_journey TEXT NOT NULL,
+            from_place TEXT NOT NULL,
+            to_place TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+setup_database()
+import sqlite3
+
+def login(username, password):
+    conn = sqlite3.connect('reservation_system.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM users WHERE username=? AND password=?', (username, password))
+    user = cursor.fetchone()
+    
+    conn.close()
+    
+    if user:
+        print("Login successful")
+        return user[0]  # Return user_id
+    else:
+        print("Login failed")
+        return None
+
+# Example usage
+user_id = login('test_user', 'test_pass')
+import sqlite3
+
+def make_reservation(user_id, train_number, train_name, class_type, date_of_journey, from_place, to_place):
+    conn = sqlite3.connect('reservation_system.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO reservations (user_id, train_number, train_name, class_type, date_of_journey, from_place, to_place)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (user_id, train_number, train_name, class_type, date_of_journey, from_place, to_place))
+    
+    conn.commit()
+    conn.close()
+    
+    print("Reservation made successfully")
+
+# Example usage
+make_reservation(user_id, '12345', 'Express Train', 'First Class', '2024-10-10', 'City A', 'City B')
+import sqlite3
+
+def cancel_reservation(reservation_id):
+    conn = sqlite3.connect('reservation_system.db')
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM reservations WHERE reservation_id=?', (reservation_id,))
+    reservation = cursor.fetchone()
+    
+    if reservation:
+        cursor.execute('DELETE FROM reservations WHERE reservation_id=?', (reservation_id,))
+        conn.commit()
+        print("Reservation cancelled successfully")
+    else:
+        print("Reservation not found")
+    
+    conn.close()
+
+# Example usage
+cancel_reservation(1)
