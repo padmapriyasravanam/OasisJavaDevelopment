@@ -1,0 +1,222 @@
+import java.util.Scanner;
+
+public class QuizSystem {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        UserService userService = new UserService();
+        QuizService quizService = new QuizService();
+
+        // Sample user for demo purposes
+        userService.addUser(new User("user1", "password123"));
+
+        System.out.println("Welcome to the Quiz System");
+
+        boolean loggedIn = false;
+        User currentUser = null;
+        while (!loggedIn) {
+            System.out.print("Enter User ID: ");
+            String userId = scanner.nextLine();
+            System.out.print("Enter Password: ");
+            String password = scanner.nextLine();
+            
+            currentUser = userService.login(userId, password);
+            if (currentUser != null) {
+                loggedIn = true;
+            } else {
+                System.out.println("Invalid User ID or Password. Please try again.");
+            }
+        }
+
+        boolean quit = false;
+        while (!quit) {
+            System.out.println("\nMenu:");
+            System.out.println("1. Update Profile");
+            System.out.println("2. Change Password");
+            System.out.println("3. Take Quiz");
+            System.out.println("4. Logout");
+            System.out.print("Choose an option: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine();  // consume newline
+
+            switch (choice) {
+                case 1:
+                    userService.updateProfile(currentUser, scanner);
+                    break;
+                case 2:
+                    userService.changePassword(currentUser, scanner);
+                    break;
+                case 3:
+                    quizService.takeQuiz(currentUser, scanner);
+                    break;
+                case 4:
+                    quit = true;
+                    System.out.println("Logged out successfully.");
+                    break;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+            }
+        }
+
+        scanner.close();
+    }
+}
+public class User {
+    private String userId;
+    private String password;
+    private String profileInfo;
+
+    public User(String userId, String password) {
+        this.userId = userId;
+        this.password = password;
+        this.profileInfo = "";
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getProfileInfo() {
+        return profileInfo;
+    }
+
+    public void setProfileInfo(String profileInfo) {
+        this.profileInfo = profileInfo;
+    }
+}
+public class Question {
+    private String questionText;
+    private String[] options;
+    private int correctOption;
+
+    public Question(String questionText, String[] options, int correctOption) {
+        this.questionText = questionText;
+        this.options = options;
+        this.correctOption = correctOption;
+    }
+
+    public String getQuestionText() {
+        return questionText;
+    }
+
+    public String[] getOptions() {
+        return options;
+    }
+
+    public int getCorrectOption() {
+        return correctOption;
+    }
+}
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class QuizService {
+    private List<Question> questions;
+    private static final int QUIZ_TIME_LIMIT = 60; // seconds
+
+    public QuizService() {
+        questions = new ArrayList<>();
+        // Sample questions for demo purposes
+        questions.add(new Question("What is the capital of France?", new String[]{"Berlin", "London", "Paris", "Rome"}, 2));
+        questions.add(new Question("Which planet is known as the Red Planet?", new String[]{"Earth", "Mars", "Jupiter", "Saturn"}, 1));
+    }
+
+    public void takeQuiz(User user, Scanner scanner) {
+        Timer timer = new Timer();
+        QuizTimerTask quizTimerTask = new QuizTimerTask(Thread.currentThread(), timer);
+        timer.schedule(quizTimerTask, QUIZ_TIME_LIMIT * 1000);
+
+        int score = 0;
+        System.out.println("Quiz started! You have " + QUIZ_TIME_LIMIT + " seconds.");
+
+        for (Question question : questions) {
+            System.out.println("\n" + question.getQuestionText());
+            String[] options = question.getOptions();
+            for (int i = 0; i < options.length; i++) {
+                System.out.println((i + 1) + ". " + options[i]);
+            }
+            System.out.print("Select your answer: ");
+            int answer = scanner.nextInt() - 1;
+
+            if (answer == question.getCorrectOption()) {
+                score++;
+            }
+        }
+
+        timer.cancel();
+        System.out.println("Quiz ended! Your score: " + score + "/" + questions.size());
+    }
+
+    private class QuizTimerTask extends TimerTask {
+        private Thread quizThread;
+        private Timer timer;
+
+        public QuizTimerTask(Thread quizThread, Timer timer) {
+            this.quizThread = quizThread;
+            this.timer = timer;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("\nTime is up! The quiz will be auto-submitted.");
+            quizThread.interrupt();
+            timer.cancel();
+        }
+    }
+}
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+public class UserService {
+    private Map<String, User> users;
+
+    public UserService() {
+        users = new HashMap<>();
+    }
+
+    public void addUser(User user) {
+        users.put(user.getUserId(), user);
+    }
+
+    public User login(String userId, String password) {
+        User user = users.get(userId);
+        if (user != null && user.getPassword().equals(password)) {
+            return user;
+        }
+        return null;
+    }
+
+    public void updateProfile(User user, Scanner scanner) {
+        System.out.print("Enter new profile information: ");
+        String profileInfo = scanner.nextLine();
+        user.setProfileInfo(profileInfo);
+        System.out.println("Profile updated successfully.");
+    }
+
+    public void changePassword(User user, Scanner scanner) {
+        System.out.print("Enter current password: ");
+        String currentPassword = scanner.nextLine();
+        if (user.getPassword().equals(currentPassword)) {
+            System.out.print("Enter new password: ");
+            String newPassword = scanner.nextLine();
+            user.setPassword(newPassword);
+            System.out.println("Password changed successfully.");
+        } else {
+            System.out.println("Incorrect current password.");
+        }
+    }
+}
+
+
+
