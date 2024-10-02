@@ -1,0 +1,237 @@
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String username;
+    private String password;
+    private String email;
+    private boolean isAdmin;
+
+    // getters and setters
+}
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
+public class Book {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String title;
+    private String author;
+    private String category;
+    private boolean isIssued;
+
+    // getters and setters
+}
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+public class Transaction {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    private User user;
+
+    @ManyToOne
+    private Book book;
+
+    private Date issueDate;
+    private Date returnDate;
+    private double fine;
+
+    // getters and setters
+}
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByUsername(String username);
+}
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface BookRepository extends JpaRepository<Book, Long> {
+}
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+}
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class UserService {
+    @Autowired
+    private UserRepository userRepository;
+
+    public User addUser(User user) {
+        return userRepository.save(user);
+    }
+
+    public User findUserByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
+    }
+}
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class BookService {
+    @Autowired
+    private BookRepository bookRepository;
+
+    public Book addBook(Book book) {
+        return bookRepository.save(book);
+    }
+
+    public List<Book> findAllBooks() {
+        return bookRepository.findAll();
+    }
+
+    public Book updateBook(Book book) {
+        return bookRepository.save(book);
+    }
+
+    public void deleteBook(Long id) {
+        bookRepository.deleteById(id);
+    }
+}
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.List;
+
+@Service
+public class TransactionService {
+    @Autowired
+    private TransactionRepository transactionRepository;
+    @Autowired
+    private BookRepository bookRepository;
+
+    public Transaction issueBook(User user, Book book) {
+        Transaction transaction = new Transaction();
+        transaction.setUser(user);
+        transaction.setBook(book);
+        transaction.setIssueDate(new Date());
+        book.setIssued(true);
+        bookRepository.save(book);
+        return transactionRepository.save(transaction);
+    }
+
+    public Transaction returnBook(Transaction transaction) {
+        transaction.setReturnDate(new Date());
+        transaction.getBook().setIssued(false);
+        bookRepository.save(transaction.getBook());
+        return transactionRepository.save(transaction);
+    }
+
+    public List<Transaction> findAllTransactions() {
+        return transactionRepository.findAll();
+    }
+}
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/admin")
+public class AdminController {
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private BookService bookService;
+
+    @PostMapping("/users")
+    public User addUser(@RequestBody User user) {
+        return userService.addUser(user);
+    }
+
+    @PostMapping("/books")
+    public Book addBook(@RequestBody Book book) {
+        return bookService.addBook(book);
+    }
+
+    @PutMapping("/books")
+    public Book updateBook(@RequestBody Book book) {
+        return bookService.updateBook(book);
+    }
+
+    @DeleteMapping("/books/{id}")
+    public void deleteBook(@PathVariable Long id) {
+        bookService.deleteBook(id);
+    }
+
+    @GetMapping("/users")
+    public List<User> findAllUsers() {
+        return userService.findAllUsers();
+    }
+
+    @GetMapping("/books")
+    public List<Book> findAllBooks() {
+        return bookService.findAllBooks();
+    }
+}
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+    @Autowired
+    private BookService bookService;
+    @Autowired
+    private TransactionService transactionService;
+
+    @GetMapping("/books")
+    public List<Book> viewBooks() {
+        return bookService.findAllBooks();
+    }
+
+    @PostMapping("/issue/{bookId}")
+    public Transaction issueBook(@PathVariable Long bookId, @RequestBody User user) {
+        Book book = bookService.findBookById(bookId);
+        return transactionService.issueBook(user, book);
+    }
+
+    @PostMapping("/return/{transactionId}")
+    public Transaction returnBook(@PathVariable Long transactionId) {
+        Transaction transaction = transactionService.findTransactionById(transactionId);
+        return transactionService.returnBook(transaction);
+    }
+
+    @GetMapping("/transactions")
+    public List<Transaction> viewTransactions() {
+        return transactionService.findAllTransactions();
+    }
+}
+
+
+
+
+
+
+
+
+
